@@ -2,14 +2,19 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { MissionConfiguration, MissionDifficulty, MissionObjective } from "@/src/domain/types";
+import type { ComponentId, MissionConfiguration, MissionDifficulty, MissionObjective } from "@/src/domain/types";
 import { getMissionTemplate } from "@/src/missions/config";
+import { getComponentDefinition } from "@/src/components/registry";
 
 type MissionStore = {
   selectedMissionId: string | null;
   configuration: MissionConfiguration | null;
+  selectedComponents: Partial<Record<ComponentId, number>>;
   selectMission: (missionId: string) => void;
   updateConfiguration: (updates: Partial<MissionConfiguration>) => void;
+  addComponent: (componentId: ComponentId) => boolean;
+  removeComponent: (componentId: ComponentId) => void;
+  resetComponents: () => void;
   resetConfiguration: () => void;
 };
 
@@ -33,12 +38,35 @@ export const useMissionStore = create<MissionStore>()(
     (set) => ({
       selectedMissionId: null,
       configuration: null,
+      selectedComponents: {},
       selectMission: (missionId) => {
         const configuration = createConfiguration(missionId);
         if (!configuration) return;
-        set({ selectedMissionId: missionId, configuration });
+        set((state) => state.selectedMissionId === missionId && state.configuration ? state : { selectedMissionId: missionId, configuration, selectedComponents: {} });
       },
       updateConfiguration: (updates) => set((state) => ({ configuration: state.configuration ? { ...state.configuration, ...updates } : null })),
+      addComponent: (componentId) => {
+        const component = getComponentDefinition(componentId);
+        if (!component || !component.availability.available) return false;
+
+        let added = false;
+        set((state) => {
+          const currentCount = state.selectedComponents[componentId] ?? 0;
+          if (currentCount >= component.availability.inventoryLimit) return state;
+          added = true;
+          return { selectedComponents: { ...state.selectedComponents, [componentId]: currentCount + 1 } };
+        });
+        return added;
+      },
+      removeComponent: (componentId) => set((state) => {
+        const currentCount = state.selectedComponents[componentId] ?? 0;
+        if (currentCount <= 1) {
+          const { [componentId]: _removed, ...remaining } = state.selectedComponents;
+          return { selectedComponents: remaining };
+        }
+        return { selectedComponents: { ...state.selectedComponents, [componentId]: currentCount - 1 } };
+      }),
+      resetComponents: () => set({ selectedComponents: {} }),
       resetConfiguration: () => set((state) => ({ configuration: state.selectedMissionId ? createConfiguration(state.selectedMissionId) : null })),
     }),
     { name: "cosmic-labs-mission" },

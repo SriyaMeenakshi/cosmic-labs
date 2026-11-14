@@ -23,7 +23,7 @@ export type MissionObjective =
   | "flyby"
   | "rendezvous"
   | "observation";
-export type ComponentCategory = "structure" | "propulsion" | "power" | "payload" | "communication" | "thermal";
+export type ComponentCategory = "structure" | "propulsion" | "power" | "science" | "payload" | "communication" | "thermal";
 export type SimulationStatus = "idle" | "running" | "paused" | "completed" | "failed";
 export type MissionDifficulty = "beginner" | "intermediate" | "advanced";
 export type GameMode = MissionDifficulty;
@@ -114,6 +114,23 @@ export interface ComponentCapabilities {
   thermalCapacityW?: number;
 }
 
+export interface ComponentPowerProfile {
+  mode: "consumption" | "generation" | "neutral";
+  watts: number;
+}
+
+export interface ComponentCompatibility {
+  compatibleWith: ComponentCategory[];
+  requiredComponents?: string[];
+  incompatibleWith?: string[];
+  notes: string[];
+}
+
+export interface ComponentAvailability {
+  available: boolean;
+  inventoryLimit: number;
+}
+
 export interface ComponentDefinition {
   id: ComponentId;
   name: string;
@@ -123,6 +140,12 @@ export interface ComponentDefinition {
   volumeM3: number;
   costCredits: number;
   capabilities: ComponentCapabilities;
+  power: ComponentPowerProfile;
+  modelReference: string;
+  compatibility: ComponentCompatibility;
+  availability: ComponentAvailability;
+  properties: Record<string, string | number | boolean>;
+  specificationNote: string;
   modelAsset?: string;
   connectionPoints: string[];
 }
