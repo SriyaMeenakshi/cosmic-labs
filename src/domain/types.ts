@@ -12,9 +12,21 @@ export type ComponentId = string & { readonly __brand: "ComponentId" };
 export type SimulationId = string & { readonly __brand: "SimulationId" };
 
 export type MissionStatus = "draft" | "ready" | "running" | "completed" | "failed";
-export type MissionObjective = "orbit" | "landing" | "flyby" | "rendezvous" | "observation";
+export type MissionObjective =
+  | "surface-observation"
+  | "geological-research"
+  | "atmospheric-analysis"
+  | "resource-exploration"
+  | "orbital-mapping"
+  | "orbit"
+  | "landing"
+  | "flyby"
+  | "rendezvous"
+  | "observation";
 export type ComponentCategory = "structure" | "propulsion" | "power" | "payload" | "communication" | "thermal";
 export type SimulationStatus = "idle" | "running" | "paused" | "completed" | "failed";
+export type MissionDifficulty = "beginner" | "intermediate" | "advanced";
+export type GameMode = MissionDifficulty;
 
 export interface Vector3 {
   x: number;
@@ -58,6 +70,38 @@ export interface Mission {
   spacecraftId?: SpacecraftId;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MissionObjectiveOption {
+  id: MissionObjective;
+  label: string;
+  description: string;
+}
+
+export interface MissionTemplate {
+  id: string;
+  destination: "mars" | "moon" | "asteroids";
+  title: string;
+  description: string;
+  objective: MissionObjective;
+  objectiveOptions: MissionObjectiveOption[];
+  difficulty: MissionDifficulty;
+  durationDays: { min: number; max: number; recommended: number };
+  initialBudgetCredits: number;
+  maxMassKg: number;
+  constraints: string[];
+  imageSrc: string;
+  imageAlt: string;
+}
+
+export interface MissionConfiguration {
+  missionTemplateId: string;
+  name: string;
+  destination: MissionTemplate["destination"];
+  objective: MissionObjective;
+  durationDays: number;
+  budgetCredits: number;
+  difficulty: MissionDifficulty;
 }
 
 export interface ComponentCapabilities {
