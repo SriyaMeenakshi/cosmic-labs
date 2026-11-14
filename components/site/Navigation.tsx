@@ -9,6 +9,7 @@ const links = [
   { label: "Missions", href: "/missions" },
   { label: "How it works", href: "/#how-it-works" },
   { label: "About", href: "/about" },
+  { label: "Science", href: "/references" },
 ];
 
 export function Navigation() {

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ComponentId, MissionConfiguration, MissionDifficulty, MissionObjective } from "@/src/domain/types";
+import type { ComponentId, EngineeringReport, MissionConfiguration, MissionDecision, MissionDifficulty, MissionObjective } from "@/src/domain/types";
 import { getMissionTemplate } from "@/src/missions/config";
 import { getComponentDefinition } from "@/src/components/registry";
 
@@ -10,12 +10,19 @@ type MissionStore = {
   selectedMissionId: string | null;
   configuration: MissionConfiguration | null;
   selectedComponents: Partial<Record<ComponentId, number>>;
+  engineeringReport: EngineeringReport | null;
+  simulationStage: number;
+  simulationDecisions: MissionDecision[];
   selectMission: (missionId: string) => void;
   updateConfiguration: (updates: Partial<MissionConfiguration>) => void;
   addComponent: (componentId: ComponentId) => boolean;
   removeComponent: (componentId: ComponentId) => void;
   resetComponents: () => void;
   resetConfiguration: () => void;
+  saveEngineeringReport: (report: EngineeringReport) => void;
+  setSimulationStage: (stage: number) => void;
+  addSimulationDecision: (decision: MissionDecision) => void;
+  resetSimulation: () => void;
 };
 
 function createConfiguration(missionId: string): MissionConfiguration | null {
@@ -39,10 +46,13 @@ export const useMissionStore = create<MissionStore>()(
       selectedMissionId: null,
       configuration: null,
       selectedComponents: {},
+      engineeringReport: null,
+      simulationStage: 0,
+      simulationDecisions: [],
       selectMission: (missionId) => {
         const configuration = createConfiguration(missionId);
         if (!configuration) return;
-        set((state) => state.selectedMissionId === missionId && state.configuration ? state : { selectedMissionId: missionId, configuration, selectedComponents: {} });
+        set((state) => state.selectedMissionId === missionId && state.configuration ? state : { selectedMissionId: missionId, configuration, selectedComponents: {}, engineeringReport: null, simulationStage: 0, simulationDecisions: [] });
       },
       updateConfiguration: (updates) => set((state) => ({ configuration: state.configuration ? { ...state.configuration, ...updates } : null })),
       addComponent: (componentId) => {
@@ -68,6 +78,10 @@ export const useMissionStore = create<MissionStore>()(
       }),
       resetComponents: () => set({ selectedComponents: {} }),
       resetConfiguration: () => set((state) => ({ configuration: state.selectedMissionId ? createConfiguration(state.selectedMissionId) : null })),
+      saveEngineeringReport: (report) => set({ engineeringReport: report }),
+      setSimulationStage: (stage) => set({ simulationStage: stage }),
+      addSimulationDecision: (decision) => set((state) => ({ simulationDecisions: [...state.simulationDecisions, decision] })),
+      resetSimulation: () => set({ simulationStage: 0, simulationDecisions: [] }),
     }),
     { name: "cosmic-labs-mission" },
   ),

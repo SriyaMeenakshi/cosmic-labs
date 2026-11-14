@@ -10,10 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.3",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "framer-motion": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "three": "^0.187.0",
     "zustand": "^5.1.0"
   },
   "devDependencies": {

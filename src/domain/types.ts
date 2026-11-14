@@ -27,6 +27,7 @@ export type ComponentCategory = "structure" | "propulsion" | "power" | "science"
 export type SimulationStatus = "idle" | "running" | "paused" | "completed" | "failed";
 export type MissionDifficulty = "beginner" | "intermediate" | "advanced";
 export type GameMode = MissionDifficulty;
+export type EngineeringStatus = "ready" | "warning" | "not-ready";
 
 export interface Vector3 {
   x: number;
@@ -171,6 +172,32 @@ export interface Spacecraft {
   designVersion: number;
 }
 
+export interface EngineeringCheck {
+  id: "mass" | "power" | "battery" | "communication" | "propulsion" | "budget" | "structure";
+  label: string;
+  status: EngineeringStatus;
+  value: string;
+  limit?: string;
+  explanation: string;
+}
+
+export interface EngineeringReport {
+  score: number;
+  status: EngineeringStatus;
+  totalMassKg: number;
+  massCapacityKg: number;
+  powerGenerationW: number;
+  powerConsumptionW: number;
+  powerMarginW: number;
+  batteryCapacityWh: number;
+  totalCostCredits: number;
+  budgetCredits: number;
+  checks: EngineeringCheck[];
+  missingComponents: string[];
+  warnings: string[];
+  suggestions: string[];
+}
+
 export interface EngineeringSnapshot {
   massKg: number;
   deltaVKmPerS: number;
@@ -209,6 +236,19 @@ export interface SimulationEvent {
   type: "launch" | "maneuver" | "communication" | "objective" | "warning" | "failure";
   message: string;
   severity: "info" | "warning" | "error";
+  choices?: SimulationChoice[];
+}
+
+export interface SimulationChoice {
+  id: string;
+  label: string;
+  consequence: string;
+}
+
+export interface MissionDecision {
+  eventId: string;
+  choiceId: string;
+  timestampSeconds: number;
 }
 
 export interface SimulationInput {
