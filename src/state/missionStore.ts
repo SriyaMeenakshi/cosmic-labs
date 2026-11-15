@@ -51,7 +51,7 @@ export const useMissionStore = create<MissionStore>()(
       configuration: null,
       selectedComponents: {},
       componentTransforms: {},
-      gesture: { name: "searching", handPosition: null, handRotation: 0, updatedAt: 0 },
+      gesture: { name: "searching", active: false, handPosition: null, handRotation: 0, updatedAt: 0 },
       engineeringReport: null,
       simulationStage: 0,
       simulationDecisions: [],
@@ -91,7 +91,18 @@ export const useMissionStore = create<MissionStore>()(
       setComponentTransform: (instanceId, transform) => set((state) => ({ componentTransforms: { ...state.componentTransforms, [instanceId]: transform } })),
       setGestureState: (gesture) => set({ gesture }),
     }),
-    { name: "cosmic-labs-mission" },
+    {
+      name: "cosmic-labs-mission",
+      partialize: (state) => ({
+        selectedMissionId: state.selectedMissionId,
+        configuration: state.configuration,
+        selectedComponents: state.selectedComponents,
+        componentTransforms: state.componentTransforms,
+        engineeringReport: state.engineeringReport,
+        simulationStage: state.simulationStage,
+        simulationDecisions: state.simulationDecisions,
+      }),
+    },
   ),
 );
 

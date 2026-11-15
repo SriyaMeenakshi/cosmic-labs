@@ -53,12 +53,18 @@ export function SpacecraftCanvas() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragIdRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!gesture.active) {
+      const interrupted = defaultSpacecraft.components.find((item) => item.instanceId === dragIdRef.current);
+      if (interrupted) setComponentTransform(interrupted.instanceId, { position: interrupted.position, rotation: interrupted.rotation });
+      dragIdRef.current = null;
+      return;
+    }
     const hand = gesture.handPosition;
     const toWorkspace = hand ? { x: Math.max(-2.1, Math.min(2.1, (hand.x - .5) * 4.2)), y: Math.max(-1.8, Math.min(1.8, (.5 - hand.y) * 3.6)), z: 0 } : null;
     if (gesture.name === "pinch" && toWorkspace) {
       if (!dragIdRef.current) {
         const nearest = spacecraft.components.reduce<{ id: string; distance: number } | null>((best, item) => { const distance = Math.hypot(item.position.x - toWorkspace.x, item.position.y - toWorkspace.y); return !best || distance < best.distance ? { id: item.instanceId, distance } : best; }, null);
-        dragIdRef.current = nearest?.id ?? null; if (nearest) window.requestAnimationFrame(() => setSelectedId(nearest.id));
+        dragIdRef.current = nearest && nearest.distance < 1.05 ? nearest.id : null; if (dragIdRef.current) window.requestAnimationFrame(() => setSelectedId(dragIdRef.current));
       }
       const dragged = spacecraft.components.find((item) => item.instanceId === dragIdRef.current);
       if (dragged) { const next = { position: toWorkspace, rotation: { x: 0, y: 0, z: gesture.handRotation } }; const distance = Math.hypot(dragged.position.x - next.position.x, dragged.position.y - next.position.y); if (distance > .025 || Math.abs(dragged.rotation.z - next.rotation.z) > .03) setComponentTransform(dragged.instanceId, next); }

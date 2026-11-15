@@ -44,6 +44,7 @@ export type GestureName = "open palm" | "pinch" | "closed fist" | "searching" | 
 
 export interface GestureState {
   name: GestureName;
+  active: boolean;
   handPosition: { x: number; y: number } | null;
   handRotation: number;
   updatedAt: number;
