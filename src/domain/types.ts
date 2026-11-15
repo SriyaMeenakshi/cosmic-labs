@@ -40,12 +40,14 @@ export interface ComponentTransform {
   rotation: Vector3;
 }
 
-export type GestureName = "open palm" | "pinch" | "closed fist" | "searching" | "unavailable";
+export type GestureName = "open palm" | "pinch" | "two-hand pinch" | "point" | "thumbs up" | "closed fist" | "searching" | "unavailable";
 
 export interface GestureState {
   name: GestureName;
   active: boolean;
   handPosition: { x: number; y: number } | null;
+  secondHandPosition: { x: number; y: number } | null;
+  handCount: number;
   handRotation: number;
   updatedAt: number;
 }

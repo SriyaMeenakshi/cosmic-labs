@@ -51,7 +51,7 @@ export const useMissionStore = create<MissionStore>()(
       configuration: null,
       selectedComponents: {},
       componentTransforms: {},
-      gesture: { name: "searching", active: false, handPosition: null, handRotation: 0, updatedAt: 0 },
+      gesture: { name: "searching", active: false, handPosition: null, secondHandPosition: null, handCount: 0, handRotation: 0, updatedAt: 0 },
       engineeringReport: null,
       simulationStage: 0,
       simulationDecisions: [],
