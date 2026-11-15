@@ -35,6 +35,20 @@ export interface Vector3 {
   z: number;
 }
 
+export interface ComponentTransform {
+  position: Vector3;
+  rotation: Vector3;
+}
+
+export type GestureName = "open palm" | "pinch" | "closed fist" | "searching" | "unavailable";
+
+export interface GestureState {
+  name: GestureName;
+  handPosition: { x: number; y: number } | null;
+  handRotation: number;
+  updatedAt: number;
+}
+
 export interface ResourceBudget {
   massKg: number;
   volumeM3: number;

@@ -2,7 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Text } from "@react-three/drei";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { componentRegistry } from "@/src/components/registry";
 import { useMissionStore } from "@/src/state/missionStore";
 import { buildSpacecraft } from "@/src/spacecraft/buildModel";
@@ -32,16 +32,42 @@ function ComponentShape({ componentId, color, selected }: { componentId: string;
   }
 }
 
-function Module({ componentId, position, selected, onSelect }: { componentId: string; position: [number, number, number]; selected: boolean; onSelect: () => void }) {
+const attachmentSockets: [number, number, number][] = [[0, 0, 0], [0, .9, 0], [0, -.9, 0], [1.5, 0, 0], [-1.5, 0, 0], [0, 0, 1.5], [0, 0, -1.5], [0, 1.35, 0], [0, -1.45, 0], [.8, .4, 0], [-.8, .4, 0]];
+
+function Module({ componentId, position, rotation, selected, onSelect }: { componentId: string; position: [number, number, number]; rotation: [number, number, number]; selected: boolean; onSelect: () => void }) {
   const definition = componentRegistry.find((item) => item.id === componentId);
   if (!definition) return null;
   const color = definition.category === "power" ? "#ffb547" : definition.category === "communication" ? "#8865ff" : definition.category === "propulsion" ? "#ff5364" : definition.category === "science" ? "#f4f7ff" : "#35d6ff";
-  return <group position={position} onClick={(event) => { event.stopPropagation(); onSelect(); }}><ComponentShape componentId={componentId} color={color} selected={selected} /><Text position={[0, -.62, 0]} fontSize={.1} color={selected ? "#35d6ff" : "#aab5ca"} anchorX="center" maxWidth={1}>{definition.name}</Text></group>;
+  return <group position={position} rotation={rotation} onClick={(event) => { event.stopPropagation(); onSelect(); }}><ComponentShape componentId={componentId} color={color} selected={selected} /><Text position={[0, -.62, 0]} rotation={[-rotation[0], -rotation[1], -rotation[2]]} fontSize={.1} color={selected ? "#35d6ff" : "#aab5ca"} anchorX="center" maxWidth={1}>{definition.name}</Text></group>;
 }
+
+function AttachmentSockets() { return <group>{attachmentSockets.map((position, index) => <mesh key={index} position={position} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.12, .012, 6, 16]} /><meshBasicMaterial color="#35d6ff" transparent opacity={.28} /></mesh>)}</group>; }
 
 export function SpacecraftCanvas() {
   const selectedComponents = useMissionStore((state) => state.selectedComponents);
-  const spacecraft = useMemo(() => buildSpacecraft(selectedComponents), [selectedComponents]);
+  const componentTransforms = useMissionStore((state) => state.componentTransforms);
+  const gesture = useMissionStore((state) => state.gesture);
+  const setComponentTransform = useMissionStore((state) => state.setComponentTransform);
+  const spacecraft = useMemo(() => buildSpacecraft(selectedComponents, componentTransforms), [selectedComponents, componentTransforms]);
+  const defaultSpacecraft = useMemo(() => buildSpacecraft(selectedComponents), [selectedComponents]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  return <div className="spacecraft-canvas" aria-label="Interactive spacecraft preview"><Canvas camera={{ position: [4, 3, 6], fov: 42 }}><color attach="background" args={["#07101f"]} /><ambientLight intensity={1.1} /><directionalLight position={[4, 4, 5]} intensity={2.4} color="#d7e8ff" /><pointLight position={[-3, 2, -2]} intensity={12} color="#35d6ff" /><gridHelper args={[8, 16, "#18345a", "#0f2240"]} /><group>{spacecraft.components.length === 0 ? <><mesh><boxGeometry args={[1.25, .8, 1.25]} /><meshStandardMaterial color="#35d6ff" wireframe /></mesh><Text position={[0, -1, 0]} fontSize={.18} color="#aab5ca" anchorX="center">ADD COMPONENTS TO BEGIN</Text></> : spacecraft.components.map((item) => <Module key={item.instanceId} componentId={item.definitionId} position={[item.position.x, item.position.y, item.position.z]} selected={selectedId === item.instanceId} onSelect={() => setSelectedId(item.instanceId)} />)}</group><OrbitControls enablePan enableZoom minDistance={3} maxDistance={12} /></Canvas><div className="canvas-hud"><span>3D DESIGN BAY</span><small>{selectedId ? "Module selected" : "Drag to orbit / scroll to zoom"}</small></div></div>;
+  const dragIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const hand = gesture.handPosition;
+    const toWorkspace = hand ? { x: Math.max(-2.1, Math.min(2.1, (hand.x - .5) * 4.2)), y: Math.max(-1.8, Math.min(1.8, (.5 - hand.y) * 3.6)), z: 0 } : null;
+    if (gesture.name === "pinch" && toWorkspace) {
+      if (!dragIdRef.current) {
+        const nearest = spacecraft.components.reduce<{ id: string; distance: number } | null>((best, item) => { const distance = Math.hypot(item.position.x - toWorkspace.x, item.position.y - toWorkspace.y); return !best || distance < best.distance ? { id: item.instanceId, distance } : best; }, null);
+        dragIdRef.current = nearest?.id ?? null; if (nearest) window.requestAnimationFrame(() => setSelectedId(nearest.id));
+      }
+      const dragged = spacecraft.components.find((item) => item.instanceId === dragIdRef.current);
+      if (dragged) { const next = { position: toWorkspace, rotation: { x: 0, y: 0, z: gesture.handRotation } }; const distance = Math.hypot(dragged.position.x - next.position.x, dragged.position.y - next.position.y); if (distance > .025 || Math.abs(dragged.rotation.z - next.rotation.z) > .03) setComponentTransform(dragged.instanceId, next); }
+    } else if (gesture.name === "open palm" && dragIdRef.current) {
+      const dragged = spacecraft.components.find((item) => item.instanceId === dragIdRef.current); if (dragged) { const socket = attachmentSockets.reduce((best, candidate) => Math.hypot(candidate[0] - dragged.position.x, candidate[1] - dragged.position.y) < Math.hypot(best[0] - dragged.position.x, best[1] - dragged.position.y) ? candidate : best, attachmentSockets[0]); setComponentTransform(dragged.instanceId, { position: { x: socket[0], y: socket[1], z: socket[2] }, rotation: { x: 0, y: 0, z: gesture.handRotation } }); } dragIdRef.current = null;
+    } else if (gesture.name === "closed fist" && dragIdRef.current) {
+      const original = defaultSpacecraft.components.find((item) => item.instanceId === dragIdRef.current); if (original) setComponentTransform(original.instanceId, { position: original.position, rotation: original.rotation }); dragIdRef.current = null;
+    }
+  }, [defaultSpacecraft, gesture, setComponentTransform, spacecraft]);
+  const cursorPosition = gesture.handPosition ? [(gesture.handPosition.x - .5) * 4.2, (.5 - gesture.handPosition.y) * 3.6, .18] as [number, number, number] : null;
+  return <div className="spacecraft-canvas" aria-label="Interactive spacecraft preview"><Canvas camera={{ position: [4, 3, 6], fov: 42 }}><color attach="background" args={["#07101f"]} /><ambientLight intensity={1.1} /><directionalLight position={[4, 4, 5]} intensity={2.4} color="#d7e8ff" /><pointLight position={[-3, 2, -2]} intensity={12} color="#35d6ff" /><gridHelper args={[8, 16, "#18345a", "#0f2240"]} /><AttachmentSockets /><group>{spacecraft.components.length === 0 ? <><mesh><boxGeometry args={[1.25, .8, 1.25]} /><meshStandardMaterial color="#35d6ff" wireframe /></mesh><Text position={[0, -1, 0]} fontSize={.18} color="#aab5ca" anchorX="center">ADD COMPONENTS TO BEGIN</Text></> : spacecraft.components.map((item) => <Module key={item.instanceId} componentId={item.definitionId} position={[item.position.x, item.position.y, item.position.z]} rotation={[item.rotation.x, item.rotation.y, item.rotation.z]} selected={selectedId === item.instanceId} onSelect={() => setSelectedId(item.instanceId)} />)}</group>{cursorPosition && gesture.name === "pinch" && <mesh position={cursorPosition}><sphereGeometry args={[.11, 12, 8]} /><meshBasicMaterial color="#35d6ff" wireframe /></mesh>}<OrbitControls enablePan enableZoom minDistance={3} maxDistance={12} /></Canvas><div className="canvas-hud"><span>3D DESIGN BAY</span><small>{gesture.name === "pinch" ? "Pinch: moving module" : selectedId ? "Module selected" : "Drag to orbit / scroll to zoom"}</small></div></div>;
 }

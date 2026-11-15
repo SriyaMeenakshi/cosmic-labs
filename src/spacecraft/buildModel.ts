@@ -1,4 +1,4 @@
-import type { ComponentId, Spacecraft, SpacecraftComponent, Vector3 } from "@/src/domain/types";
+import type { ComponentId, ComponentTransform, Spacecraft, SpacecraftComponent, Vector3 } from "@/src/domain/types";
 import { componentRegistry } from "@/src/components/registry";
 
 const slots: Record<string, Vector3[]> = {
@@ -9,7 +9,7 @@ const slots: Record<string, Vector3[]> = {
   propulsion: [{ x: 0, y: -1.45, z: 0 }, { x: 0.8, y: -1.45, z: 0 }, { x: -0.8, y: -1.45, z: 0 }, { x: 0, y: -1.8, z: 0 }],
 };
 
-export function buildSpacecraft(counts: Partial<Record<ComponentId, number>>): Spacecraft {
+export function buildSpacecraft(counts: Partial<Record<ComponentId, number>>, transforms: Record<string, ComponentTransform> = {}): Spacecraft {
   const components: SpacecraftComponent[] = [];
   const usedSlots: Record<string, number> = {};
   componentRegistry.forEach((definition) => {
@@ -18,7 +18,10 @@ export function buildSpacecraft(counts: Partial<Record<ComponentId, number>>): S
       const categorySlots = slots[definition.category] ?? [{ x: 0, y: 0, z: 0 }];
       const slotIndex = usedSlots[definition.category] ?? 0;
       usedSlots[definition.category] = slotIndex + 1;
-      components.push({ instanceId: `${definition.id}-${index + 1}`, definitionId: definition.id, position: categorySlots[slotIndex % categorySlots.length], rotation: { x: 0, y: 0, z: 0 }, enabled: true });
+      const instanceId = `${definition.id}-${index + 1}`;
+      const defaultTransform = { position: categorySlots[slotIndex % categorySlots.length], rotation: { x: 0, y: 0, z: 0 } };
+      const transform = transforms[instanceId] ?? defaultTransform;
+      components.push({ instanceId, definitionId: definition.id, position: transform.position, rotation: transform.rotation, enabled: true });
     }
   });
   const totalMassKg = components.reduce((sum, item) => sum + (componentRegistry.find((definition) => definition.id === item.definitionId)?.massKg ?? 0), 0);
